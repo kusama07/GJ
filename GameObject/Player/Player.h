@@ -9,6 +9,7 @@
 #include "CollisionConfig.h"
 #include "Collider.h"
 #include "BoxType.h"
+#include "Map.h"
 
 #include <list>
 
@@ -31,12 +32,12 @@ public:
 	/// <summary>
 	/// 初期化処理
 	/// </summary>
-	void Initialize(Model* model, Vector3 position);
+	void Initialize(Model* model, Vector3 position,Model* nomalModel);
 
 	/// <summary>
 	/// 更新処理
 	/// </summary>
-	void Update();
+	void Update(XINPUT_STATE state);
 
 	/// <summary>
 	/// 描画処理
@@ -46,7 +47,7 @@ public:
 	/// <summary>
 	/// 移動処理
 	/// </summary>
-	void Move();
+	void Move(XINPUT_STATE state);
 
 	/// <summary>
 	/// 衝突判定処理
@@ -70,7 +71,7 @@ public:
 	/// <summary>
 	/// ボックスを出す処理
 	/// </summary>
-	void Box();
+	void Box(XINPUT_STATE state);
 
 	/// <summary>
 	/// 速度を設定する
@@ -92,6 +93,9 @@ public:
 	/// </summary>
 	void SetWorldPosition(Vector3 position) { worldTransform_.translation_ = position; }
 
+	//bool GetisClearFlag() const { isClearFlag_; }
+
+	void AddGroundMap(Map* ground);
 
 private:
 
@@ -100,6 +104,8 @@ private:
 
 	// モデル
 	Model* model_ = nullptr; 
+
+	Model* nomalModel_ = nullptr;
 
 	// テクスチャハンドル
 	uint32_t playerTextureHandle_ = 0u; 
@@ -163,6 +169,7 @@ private:
 
 	// マップボックスのビット
 	MapBit mapBit_;
+	std::list<Map*> MapGrounds_;
 
 };
 

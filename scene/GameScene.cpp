@@ -115,9 +115,9 @@ void GameScene::Initialize() {
 	// プレイヤーのOBJ
 	playerModel_ = Model::CreateFromOBJ("player", true);
 	// 初期化処理
-	player_->Initialize(playerModel_, playerPos);
+	player_->Initialize(playerModel_, playerPos,model_);
 	// ステージに入るときの初期座標
-	IniPosStage1_ = {4.0f, -10.0f, 0.0f};
+	IniPosStage1_ = {20.0f, -34.0f, 0.0f};
 	IniPosStage2_ = {4.0f, -43.0f, 0.0f};
 	IniPosStage3_ = {4.0f, -43.0f, 0.0f};
 	IniPosStage4_ = {2.1f, -30.0f, 0.0f};
@@ -240,7 +240,7 @@ void GameScene::Update() {
 		    UpdateMapData(nowMap_);
 
 			/* ----- Player 自キャラ ----- */
-		    player_->Update();
+		    player_->Update(joyState_);
 
 		    /* ----- Skydome 天球 ----- */
 		    skydome_->Update();
@@ -278,7 +278,7 @@ void GameScene::Update() {
 		    UpdateMapData(nowMap_);
 
 			/* ----- Player 自キャラ ----- */
-		    player_->Update();
+		    player_->Update(joyState_);
 
 		    /* ----- Skydome 天球 ----- */
 		    skydome_->Update();
@@ -316,7 +316,7 @@ void GameScene::Update() {
 		    UpdateMapData(nowMap_);
 
 			/* ----- Player 自キャラ ----- */
-		    player_->Update();
+		    player_->Update(joyState_);
 
 		    /* ----- Skydome 天球 ----- */
 		    skydome_->Update();
@@ -354,7 +354,7 @@ void GameScene::Update() {
 		    UpdateMapData(nowMap_);
 
 			/* ----- Player 自キャラ ----- */
-		    player_->Update();
+		    player_->Update(joyState_);
 
 		    /* ----- Skydome 天球 ----- */
 		    skydome_->Update();
@@ -729,6 +729,14 @@ void GameScene::UpdateMapData(int index) {
 
 				// 座標を決めてブロックを生成
 				GeneratedMap(index, CreateMapVector(colmnCount, lineCount), stage_.boxTexture[1], kCollisionAttributeMapBox_Ground);
+			
+				// プレイヤーのGroundMapBpxリストに送る
+				Map* newGround = new Map();
+				newGround->Initialize(
+				    model_, CreateMapVector(colmnCount, lineCount), stage_.boxTexture[1],
+				    kCollisionAttributeMapBox_Ground);
+				player_->AddGroundMap(newGround);
+
 			}
 			else if (stoi(strvec.at(colmnCount)) == 2) {
 

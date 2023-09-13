@@ -16,10 +16,11 @@ Player::~Player() {}
 /// <summary>
 /// 初期化処理
 /// </summary>
-void Player::Initialize(Model* model, Vector3 position) {
+void Player::Initialize(Model* model, Vector3 position, Model* nomalModel) {
 
 	assert(model);
 	this->model_ = model;
+	this->nomalModel_ = nomalModel;
 
 	worldTransform_.translation_ = position;
 	worldTransform_.Initialize();
@@ -50,16 +51,16 @@ void Player::Initialize(Model* model, Vector3 position) {
 /// <summary>
 /// 更新処理
 /// </summary>
-void Player::Update() {
+void Player::Update(XINPUT_STATE state) {
 
 	/*画像*/
 	worldTransform_.TransferMatrix();
 
 	/*移動*/
-	Move();
+	Move(state);
 
 	/*弾*/
-	Box();
+	Box(state);
 	tim_--;
 	// 赤
 	Vector3 moveBoxRed = {0, 0, 0};
@@ -83,7 +84,7 @@ void Player::Update() {
 	ImGui::Begin("Player");
 
 	ImGui::DragFloat3("Translation", &worldTransform_.translation_.x, 0.01f);
-
+	ImGui::Text("tim_ = %d", tim_);
 	ImGui::End();
 
 #endif
@@ -114,7 +115,7 @@ void Player::Draw(ViewProjection viewProjection) {
 /// <summary>
 /// 移動処理
 /// </summary>
-void Player::Move() {
+void Player::Move(XINPUT_STATE state) {
 
 	worldTransform_.TransferMatrix();
 
@@ -134,7 +135,7 @@ void Player::Move() {
 
 	acce_.y = -0.08f;
 
-	if ((input_->TriggerKey(DIK_SPACE) || joyState.Gamepad.wButtons & XINPUT_GAMEPAD_A) &&
+	if ((input_->TriggerKey(DIK_SPACE) || state.Gamepad.wButtons & XINPUT_GAMEPAD_A) &&
 	    worldTransform_.translation_.y == worldTransform_.scale_.y) {
 		velocity_.y = 1.0f;
 	}
@@ -176,9 +177,9 @@ void Player::Move() {
 
 #pragma region コントローラ
 
-	if (Input::GetInstance()->GetJoystickState(0, joyState)) {
+	if (Input::GetInstance()->GetJoystickState(0, state)) {
 		// 右スティックのX軸の値を取得
-		float rightThumbstickX = (float)joyState.Gamepad.sThumbRX / SHRT_MAX;
+		float rightThumbstickX = (float)state.Gamepad.sThumbRX / SHRT_MAX;
 
 		// スティックの値に基づいて移動を計算
 		Vector3 move = {rightThumbstickX, 0.0f, 0.0f};
@@ -214,18 +215,19 @@ void Player::onCollision(int num) {
 
 	// 壁や床に当たった時の処理
 	if (num == mapBit_.GroundBox) {
+		
+			// 床に乗れるように、プレイヤーのY座標を床の上に調整する
+			float newPlayerY = -34.0f; // 床の高さに合わせる（適切な値を設定する必要があります）
+			AddJustPositionOnBox(newPlayerY);
 
-		// 床に乗れるように、プレイヤーのY座標を床の上に調整する
-		float newPlayerY = Ground.max.y + 0.1f; // 床の高さに合わせる（適切な値を設定する必要があります）
-		AddJustPositionOnBox(newPlayerY);
-
-		// ここでジャンプの状態をリセットするかどうかの処理を追加
-		velocity_.y = 0.0f;
+			// ここでジャンプの状態をリセットするかどうかの処理を追加
+			velocity_.y = 0.0f;
+		
 
 	} 
 	// ダメージ床に当たった時の処理
 	else if (num == mapBit_.DamageBox) {
-
+		worldTransform_.translation_ = {4.0f, -34.0f, 0.0f};
 	} 
 	// スタートボックスに当たった時の処理
 	else if (num == mapBit_.StartBox) {
@@ -297,29 +299,29 @@ AABB Player::GetAABB() {
 /// <summary>
 /// ボックスを出す処理
 /// </summary>
-void Player::Box() {
+void Player::Box(XINPUT_STATE state) {
 
-	if (tim_ <= 0) {
-		if (!Input::GetInstance()->GetJoystickState(0, joyState)) {
+	/*if (tim_ <= 0) {*/
+		if (!Input::GetInstance()->GetJoystickState(0, state)) {
 			return;
 		}
 		// 赤
-		if (joyState.Gamepad.wButtons & XINPUT_GAMEPAD_B) {
+		if (input_->PushKey(DIK_B) || state.Gamepad.wButtons & XINPUT_GAMEPAD_B) {
 			redMove_ = true;
 			blueMove_ = false;
 			boxSpeedRed_ = 0.0f;
 			TIM_ = 180;
 			// 右
 			if (rLetGo_ == true) {
-				if (joyState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) {
+				if (input_->PushKey(DIK_D) || state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) {
 					lLetGo_ = false;
 					if (bButtonReleased_) {
 						BoxType* boxRed_ = new BoxType;
-						bulletOffset_.x += 2.0f;
+						bulletOffset_.x += 2.1f;
 						// 弾の位置を計算してオフセットを適用
 						Vector3 bulletPosition = Add(worldTransform_.translation_, bulletOffset_);
 
-						boxRed_->Initialize(model_, bulletPosition, redBox_);
+						boxRed_->Initialize(nomalModel_, bulletPosition, redBox_);
 
 						REDs_.push_back(boxRed_);
 						bButtonReleased_ = false; // 十字キーが押されたことを記録
@@ -331,15 +333,15 @@ void Player::Box() {
 			}
 			// 左
 			if (lLetGo_ == true) {
-				if (joyState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) {
+				if (input_->PushKey(DIK_A) || state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) {
 					rLetGo_ = false;
 					if (bButtonReleased_) {
 						BoxType* boxRed_ = new BoxType;
-						bulletOffset_.x -= 2.0f;
+						bulletOffset_.x -= 2.1f;
 						// 弾の位置を計算してオフセットを適用
 						Vector3 bulletPosition = Add(worldTransform_.translation_, bulletOffset_);
 
-						boxRed_->Initialize(model_, bulletPosition, redBox_);
+						boxRed_->Initialize(nomalModel_, bulletPosition, redBox_);
 
 						REDs_.push_back(boxRed_);
 						bButtonReleased_ = false; // 十字キーが押されたことを記録
@@ -365,22 +367,22 @@ void Player::Box() {
 			}
 		}
 		// 青
-		if (joyState.Gamepad.wButtons & XINPUT_GAMEPAD_X) {
+	    if (input_->PushKey(DIK_X) || state.Gamepad.wButtons & XINPUT_GAMEPAD_X) {
 			blueMove_ = true;
 			redMove_ = false;
 			boxSpeedBlue_ = 0.0f;
 			TIM_ = 180;
 			// 右
 			if (rLetGo_ == true) {
-				if (joyState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) {
+			    if (input_->PushKey(DIK_D) || state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) {
 					lLetGo_ = false;
 					if (bButtonReleased_) {
 						BoxType* boxBlue_ = new BoxType;
-						bulletOffset_.x += 2.0f;
+					    bulletOffset_.x += 2.1f;
 						// 弾の位置を計算してオフセットを適用
 						Vector3 bulletPosition = Add(worldTransform_.translation_, bulletOffset_);
 
-						boxBlue_->Initialize(model_, bulletPosition, blueBox_);
+						boxBlue_->Initialize(nomalModel_, bulletPosition, blueBox_);
 
 						BLUEs_.push_back(boxBlue_);
 						bButtonReleased_ = false; // 十字キーが押されたことを記録
@@ -392,16 +394,16 @@ void Player::Box() {
 				}
 			}
 			// 左
-			if (lLetGo_ == true) {
-				if (joyState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) {
+		    if (input_->PushKey(DIK_A) || lLetGo_ == true) {
+				if (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) {
 					rLetGo_ = false;
 					if (bButtonReleased_) {
 						BoxType* boxBlue_ = new BoxType;
-						bulletOffset_.x -= 2.0f;
+					    bulletOffset_.x -= 2.1f;
 						// 弾の位置を計算してオフセットを適用
 						Vector3 bulletPosition = Add(worldTransform_.translation_, bulletOffset_);
 
-						boxBlue_->Initialize(model_, bulletPosition, blueBox_);
+						boxBlue_->Initialize(nomalModel_, bulletPosition, blueBox_);
 
 						BLUEs_.push_back(boxBlue_);
 						bButtonReleased_ = false; // 十字キーボタンが押されたことを記録
@@ -427,7 +429,7 @@ void Player::Box() {
 				}
 			}
 		}
-	}
+	/*}*/
 }
 
 
@@ -494,3 +496,4 @@ void Player::HitBox() {
 	}
 }
 
+void Player::AddGroundMap(Map* ground) { MapGrounds_.push_back(ground); }

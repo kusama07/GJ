@@ -92,7 +92,6 @@ public: // メンバ関数
 	/// </summary>
 	void GeneratedMap(int index, Vector3 pos, uint32_t mapBoxTextureHandle, uint32_t filter);
 
-
 private: // メンバ変数
 	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
@@ -191,8 +190,6 @@ private: // メンバ変数
 	/* ----- GamePad ゲームパッド ----- */
 	// ゲームパッドの状態を得る変数(XINPUT)
 	XINPUT_STATE joyState_;
-
-
 
 	/// <summary>
 	/// ゲームシーン用
